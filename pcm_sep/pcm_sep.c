@@ -8,7 +8,7 @@ int main(int argc,char* argv[]){
     if(pWav!=NULL){
         int calc_sim_bytes=pWav->channels*pWav->bitsPerSample>>3;
         int calc_total_bytes=calc_sim_bytes*READ_FRAME;
-        //·ÖÒ»¿é´óÄÚ´æ£¬±ÜÃâ·´¸´·ÖÅä(¹²ÏíÄÚ´æ)
+        //åˆ†ä¸€å—å¤§å†…å­˜ï¼Œé¿å…åå¤åˆ†é…(å…±äº«å†…å­˜)
         signed char *buff=(signed char*)malloc(calc_total_bytes<<1);
         signed char *l_buff=NULL,*r_buff=NULL;
         FILE *l_file=fopen("l_channel.pcm","wb+");
@@ -30,11 +30,11 @@ int main(int argc,char* argv[]){
                 int tic=read_bytes>>1;
                 while(tic>0){
                     if((tic%2)==0){
-                        //×óÉùµÀ
+                        //å·¦å£°é“
                         *l_tmp=*pTmpBuff;
                         l_tmp++;
                     }else{
-                        //ÓÒÉùµÀ
+                        //å³å£°é“
                         *r_tmp=*pTmpBuff;
                         r_tmp++;
                     }
@@ -49,7 +49,7 @@ int main(int argc,char* argv[]){
                 fwrite(r_buff,(pWav->channels==1)?read_bytes:read_bytes>>1,1,r_file);
             }
         }
-        //ÊÍ·ÅÄÚ´æ
+        //é‡Šæ”¾å†…å­˜
         free(buff);
         if(l_file!=NULL){
             fflush(l_file);
@@ -59,10 +59,10 @@ int main(int argc,char* argv[]){
             fflush(r_file);
             fclose(r_file);
         }
+        drwav_close(pWav);
         printf("Finished.\n");
     }else{
         printf("Can't Found File.\n");
     }
-    drwav_close(pWav);
     return 0;
 }
