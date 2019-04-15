@@ -1,0 +1,9 @@
+分贝计
+频率:44Khz
+解压:miniz
+采集:rtaudio(wasapi)
+图像:stb_image
+音频:lamemp3
+渲染:opengl+gdi
+
+                    mengdj
