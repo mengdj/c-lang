@@ -176,6 +176,7 @@
     <ClInclude Include="Resource.h" />
     <ClInclude Include="shine_mp3.h" />
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="stb_image_resize.h" />
     <ClInclude Include="stb_image_write.h" />
     <ClInclude Include="stb_leakcheck.h" />
     <ClInclude Include="stdafx.h" />
