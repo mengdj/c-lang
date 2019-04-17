@@ -400,6 +400,7 @@ BOOL	GlUpdateBackgroundFromFile(CONST CHAR * cName) {
 				}
 			}
 			else {
+				//清理纹理内存
 				glDeleteTextures(1, texturesIds);
 				glGenTextures(1, texturesIds);
 				glEnable(GL_TEXTURE_2D);
@@ -407,6 +408,19 @@ BOOL	GlUpdateBackgroundFromFile(CONST CHAR * cName) {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 				pre_channel = c;
+				//缩放图像
+				/**
+				if (w > BACKGROUND_WIDTH || h > BACKGROUND_HEIGHT) {
+					INT iNewWidth = MIN(BACKGROUND_WIDTH, w), iNewHeight = MIN(BACKGROUND_HEIGHT, h);
+					LPBYTE resDecThumbBuff = malloc(iNewWidth * iNewHeight * c);
+					if (resDecThumbBuff && stbir_resize_uint8(resDecBuff, w, h, 0, resDecThumbBuff, iNewWidth, iNewHeight, 0, c)) {
+						CopyMemory(resDecBuff, resDecThumbBuff, iNewWidth * iNewHeight * c);
+						w = iNewWidth;
+						h = iNewHeight;
+					}
+					free(resDecThumbBuff);
+					resDecThumbBuff = NULL;
+				}*/
 				if (c == 3) {
 					//3通道
 					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, resDecBuff);
