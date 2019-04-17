@@ -10,7 +10,6 @@
 #define IDI_SMALL                       108
 #define IDC_DECIBEL                     109
 #define IDC_CURSOR_DEF                  135
-#define IDI_ICON_REC                    153
 
 // Next default values for new objects
 // 

@@ -7,6 +7,12 @@
 #define MAX_CHAR			128
 #define OPENGL_PI			3.1415926f
 #define FFT_FACTOR			0.1f
+#define	BACKGROUND_WIDTH	500
+#define BACKGROUND_HEIGHT	130
+#ifndef MAX_LOADSTRING
+#define MAX_LOADSTRING		128
+#endif // !
+
 static HGLRC				hRC = NULL;
 static HDC					hDC = NULL;
 static HWND					hOpenGlWnd = NULL;
@@ -19,8 +25,9 @@ static GLfloat				iPointXPre = 0;
 static GLuint				texturesIds[1];
 static GLfloat				vPrecent = 0.0f;
 static SIZE					sMsgSize = { 0,0 };
-static CHAR					*bgNames[2] = { "res/background_a.png","res/background_b.png"};
+static CHAR* bgNames[2] = { "res/background_a.png","res/background_b.png" };
 static kiss_fft_cfg			fft_cfg = NULL;
+static INT					pre_channel = 0;
 
 ATOM RegisterGlCls(WNDPROC wndProc, HINSTANCE hInstance) {
 	hInst = hInstance;
@@ -263,7 +270,7 @@ BOOL InitGlWindow(HWND hWnd, INT bits, INT iWidth, INT iHeight, mz_zip_archive *
 	hOpenGlWnd = hWnd;
 	GLuint iPixelFormat = 0;
 	LPVOID resBuff = NULL;
-	INT iSize = 0;
+	INT iSize = 0, iRealBytes = 0;
 	hDC = GetDC(hWnd);
 	if (!hDC) {
 		UnInitGlWindow();
@@ -317,13 +324,42 @@ BOOL InitGlWindow(HWND hWnd, INT bits, INT iWidth, INT iHeight, mz_zip_archive *
 	INT w = 0, h = 0, c = 0;
 	glGenTextures(1, texturesIds);
 	glEnable(GL_TEXTURE_2D);
-	if ((iSize = LoadResourceFromZip(pZip, bgNames[(rand() % 2)], &resBuff))) {
-		BYTE* resDecBuff = stbi_load_from_memory((BYTE*)resBuff, iSize, &w, &h, &c, 3);
-		if (resDecBuff) {
+	BYTE * resDecBuff = NULL;
+	CHAR * pBackgroundName = NULL;
+	WCHAR wName[MAX_LOADSTRING] = { 0 };
+	if (GetPrivateProfileStringLocal(TEXT("OPENGL"), TEXT("background"), TEXT("NULL"), wName, MAX_LOADSTRING)) {
+		if (lstrcmp(wName, TEXT("NULL")) != 0) {
+			HANDLE hFile = CreateFile(
+				wName,
+				GENERIC_READ,
+				FILE_SHARE_READ | FILE_SHARE_WRITE,
+				NULL,
+				OPEN_EXISTING,
+				0,
+				0
+			);
+			if (hFile != INVALID_HANDLE_VALUE) {
+				//resBuff
+				if (iSize = GetFileSize(hFile, NULL)) {
+					resBuff = malloc(iSize);
+					if (!ReadFile(hFile, resBuff, iSize, &iRealBytes, NULL)) {
+						free(resBuff);
+						resBuff = NULL;
+					}
+				}
+				CloseHandle(hFile);
+			}
+		}
+	}
+
+	if ((resBuff != NULL) || (iSize = LoadResourceFromZip(pZip, bgNames[(rand() % 2)], &resBuff))) {
+		resDecBuff = stbi_load_from_memory((BYTE*)resBuff, iSize, &w, &h, &c, 0);
+		if (resDecBuff != NULL) {
 			//0
 			glBindTexture(GL_TEXTURE_2D, texturesIds[0]);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+			pre_channel = c;
 			if (c == 3) {
 				//3通道
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, resDecBuff);
@@ -332,6 +368,7 @@ BOOL InitGlWindow(HWND hWnd, INT bits, INT iWidth, INT iHeight, mz_zip_archive *
 				//4通道
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, resDecBuff);
 			}
+			stbi_image_free(resDecBuff);
 		}
 #ifndef _DEBUG
 		free(resBuff);
@@ -342,6 +379,55 @@ BOOL InitGlWindow(HWND hWnd, INT bits, INT iWidth, INT iHeight, mz_zip_archive *
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	fft_cfg = kiss_fft_alloc(REN_FRAME_COUNT, 0, NULL, NULL);
 	return TRUE;
+}
+
+BOOL	GlUpdateBackgroundFromFile(CONST CHAR * cName) {
+	INT w = 0, h = 0, c = 0;
+	BOOL ret = FALSE;
+	BYTE* resDecBuff = stbi_load(cName, &w, &h, &c, 0);
+	if (resDecBuff) {
+		if (texturesIds[1]) {
+			if (pre_channel == c && w == BACKGROUND_WIDTH && h == BACKGROUND_HEIGHT) {
+				glBindTexture(GL_TEXTURE_2D, texturesIds[0]);
+				if (c == 3) {
+					//3通道
+					glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, resDecBuff);
+					ret = TRUE;
+				}
+				else {
+					//4通道
+					glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, resDecBuff);
+				}
+			}
+			else {
+				glDeleteTextures(1, texturesIds);
+				glGenTextures(1, texturesIds);
+				glEnable(GL_TEXTURE_2D);
+				glBindTexture(GL_TEXTURE_2D, texturesIds[0]);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+				pre_channel = c;
+				if (c == 3) {
+					//3通道
+					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, resDecBuff);
+					ret = TRUE;
+				}
+				else {
+					//4通道
+					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, resDecBuff);
+				}
+			}
+			if (ret) {
+				WCHAR wName[MAX_LOADSTRING] = { 0 };
+				Char2WChar(cName, wName);
+				if (!WritePrivateProfileStringLocal(TEXT("OPENGL"), TEXT("background"), wName)) {
+				}
+			}
+		}
+		stbi_image_free(resDecBuff);
+		resDecBuff = NULL;
+	}
+	return ret;
 }
 
 VOID GlReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid * pixels) {

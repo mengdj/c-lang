@@ -28,8 +28,10 @@ DWORD WINAPI	RenderGl(LPVOID);
 VOID			ReSizeGl(INT, INT, INT, INT);
 VOID			GlReadPixels(GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, GLvoid *);
 VOID			GlTextout(FLOAT, FLOAT, CONST CHAR*);
+BOOL			GlUpdateBackgroundFromFile(CONST CHAR*);
 
 extern unsigned char *stbi_load_from_memory(unsigned char const *buffer, int len, int *x, int *y, int *comp, int req_comp);
+extern unsigned char *stbi_load(char const* filename, int* x, int* y, int* channels_in_file, int desired_channels);
 extern void stbi_image_free(void *retval_from_stbi_load);
 extern DWORD LoadResourceFromRes(HINSTANCE hInstace, int resId, LPVOID* outBuff, LPWSTR resType);
 extern INT LoadResourceFromZip(mz_zip_archive *pZip, const char* pName, LPVOID *pBuff);

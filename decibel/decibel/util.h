@@ -37,6 +37,23 @@ INT LinearEaseIn(INT t, INT iBegin, INT iEnd, INT iDulay) {
 	return iEnd * t / iDulay + iBegin;
 }
 
+VOID PrivateProfileStringCfg(LPWSTR lpReturnedCfg, DWORD nSize) {
+	GetCurrentDirectory(nSize, lpReturnedCfg);
+	swprintf_s(lpReturnedCfg, nSize, TEXT("%s\\%s"), lpReturnedCfg, TEXT("cfg.ini"));
+}
+
+BOOL GetPrivateProfileStringLocal(LPCWSTR lpAppName, LPCWSTR lpKeyName, LPCWSTR lpDefault, LPWSTR lpReturnedString, DWORD nSize) {
+	WCHAR wDir[MAX_PATH] = { 0 };
+	PrivateProfileStringCfg(wDir, MAX_PATH);
+	return GetPrivateProfileString(lpAppName, lpKeyName, lpDefault, lpReturnedString, nSize, wDir);
+}
+
+BOOL WritePrivateProfileStringLocal(LPCWSTR lpAppName, LPCWSTR lpKeyName, LPCWSTR lpString) {
+	WCHAR wDir[MAX_PATH] = { 0 };
+	PrivateProfileStringCfg(wDir, MAX_PATH);
+	return WritePrivateProfileString(lpAppName, lpKeyName, lpString, wDir);
+}
+
 INT LoadResourceFromZip(mz_zip_archive *pZip, const char* pName, LPVOID *pBuff) {
 	INT iIndex = 0, iSize = 0;
 	if ((iIndex = mz_zip_reader_locate_file(pZip, pName, NULL, 0)) >= 0) {
