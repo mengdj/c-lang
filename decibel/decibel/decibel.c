@@ -648,7 +648,7 @@ BOOL PreProcessCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 					sTmpPid->channel = 4;
 					sTmpPid->data = stbi_load_from_memory((BYTE*)resBuff, iSize, &sTmpPid->width, &sTmpPid->height, &sTmpPid->channel, sTmpPid->channel);
 					sTmpPid->len = sTmpPid->width * sTmpPid->height * sTmpPid->channel;
-					sTmpPid->d = 3000;
+					sTmpPid->d = 6000;
 					sTmpPid->o = NULL;
 					if (GetBitmapFromRes(sTmpPid)) {
 						sTmpPid->x = 0;
@@ -2015,7 +2015,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 					}
 					WCHAR msgBuff[MAX_LOADSTRING];
 					swprintf_s(msgBuff, MAX_LOADSTRING, TEXT("%s %s"), TEXT("录音"), szRecEncName);
-					WriteMsgTip(0, 150, RGB(0xFF, 0xFF, 0xFF), RGB(0x49, 0xA8, 0x14), msgBuff, TRUE);
+					WriteMsgTip(0, 1500, RGB(0xFF, 0xFF, 0xFF), RGB(0x49, 0xA8, 0x14), msgBuff, TRUE);
 				}
 				//刷新
 				InvalidateRect(hWnd, &sRecordRect, FALSE);
