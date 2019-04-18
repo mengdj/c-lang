@@ -61,4 +61,17 @@
 #include "util.h"
 #include <shellapi.h>
 
+#define CURL_STATICLIB
+#pragma comment(lib,"Crypt32.lib")
+#pragma comment(lib,"Wldap32.lib")
+#pragma comment(lib,"ws2_32.lib")
+#include "curl/curl.h"
+#include "curl/easy.h"
+#pragma comment(lib,"libcurl_a.lib")
 #endif
+
+#define MAJ_VER					1
+#define MID_VER					0
+#define MIN_VER					9
+#define COU_VER					3
+#define TEXT_CURRENT_VER		TEXT("1.0.9")
