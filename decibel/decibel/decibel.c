@@ -29,7 +29,7 @@
 
 #define ICON_IDB_DEC					0
 #define ICON_IDB_DEC_SMALL				1
-#define ICON_IDB_REC					2
+#define ICON_IDB_DA						2
 
 //读写锁
 #define SHINE_RW_LOCK					0
@@ -611,6 +611,7 @@ BOOL PreProcessCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 		LOG_TRACE("CoInitialize:Failture");
 	}
 	szHandle[HANDLE_MAIN_WND] = hWnd;
+	szIcon[ICON_IDB_DA] = LoadIcon(hInst, MAKEINTRESOURCE(IDI_ICON_DA));
 	//初始化压缩资源
 	ZeroMemory(&szResZip, sizeof(MZ_RES_ZIP));
 	if (mz_zip_reader_init_file(&szResZip.zip, "resources.dat", 0)) {
@@ -1839,7 +1840,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		FillRect(szMemDc, &sMenuBarRect, szForm.hBrush[1]);
 		COLORREF oldColor = SetTextColor(szMemDc, RGB(0xFF, 0xFF, 0xFF));
 		szForm.hFont[1] = SelectObject(szMemDc, szForm.hFont[0]);
-		TextOut(szMemDc, 6, 12, szTitle, lstrlen(szTitle));
+		DrawIconEx(szMemDc, 6, 9, szIcon[ICON_IDB_DA], 24, 24, 0, NULL, DI_NORMAL);
+		TextOut(szMemDc, 30, 12, szTitle, lstrlen(szTitle));
 		MoveToEx(szMemDc, 0, 40, &oldPoint);
 		LineTo(szMemDc, sClientRect.right, 40);
 		MoveToEx(szMemDc, oldPoint.x, oldPoint.y, NULL);
