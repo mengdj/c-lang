@@ -561,7 +561,7 @@ size_t CheckVer(VOID* ptr, size_t size, size_t nmemb, VOID* stream) {
 			WCHAR wMsg[MAX_LOADSTRING] = { 0 };
 			WritePrivateProfileStringLocal(TEXT("DEC"), TEXT("version"), wDVer);
 			swprintf_s(wMsg, MAX_LOADSTRING, TEXT("检测到新版本:%s,建议尽快更新"), wDVer);
-			WriteMsgContent(0, 1500, RGB(0xFF, 0xFF, 0xFF), RGB(0x82, 0x84, 0xFD), wMsg, TRUE);
+			WriteMsgContent(0, 5000, RGB(0xFF, 0xFF, 0xFF), RGB(0x82, 0x84, 0xFD), wMsg, TRUE);
 		}
 	}
 	return size * nmemb;
@@ -1933,85 +1933,82 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			if (szForm.dec_about_hover == FALSE) {
 				szForm.dec_about_hover = TRUE;
 				UpdateTooltipEx(szHandle[HANDLE_TOOLTIP_WND], hWnd, &sAboutRect, TEXT("关于我"));
-				return InvalidateRectOnce(hWnd, &sAboutRect, FALSE);
+				InvalidateRectOnce(hWnd, &sAboutRect, FALSE);
 			}
 		}
-		else if (PtInRect(&sMinRect, point) == TRUE) {
+		else {
+			if (szForm.dec_about_hover == TRUE) {
+				szForm.dec_about_hover = FALSE;
+				InvalidateRectOnce(hWnd, &sAboutRect, FALSE);
+			}
+		}
+		if (PtInRect(&sMinRect, point) == TRUE) {
 			if (szForm.dec_min_hover == FALSE) {
 				szForm.dec_min_hover = TRUE;
 				UpdateTooltipEx(szHandle[HANDLE_TOOLTIP_WND], hWnd, &sMinRect, TEXT("最小化"));
-				return InvalidateRectOnce(hWnd, &sMinRect, FALSE);
+				InvalidateRectOnce(hWnd, &sMinRect, FALSE);
 			}
 		}
-		else if (PtInRect(&sCloseRect, point) == TRUE) {
+		else {
+			if (szForm.dec_min_hover == TRUE) {
+				szForm.dec_min_hover = FALSE;
+				InvalidateRectOnce(hWnd, &sMinRect, FALSE);
+			}
+		}
+		if (PtInRect(&sCloseRect, point) == TRUE) {
 			if (szForm.close_hover == FALSE) {
 				szForm.close_hover = TRUE;
 				UpdateTooltipEx(szHandle[HANDLE_TOOLTIP_WND], hWnd, &sCloseRect, TEXT("关闭"));
-				return InvalidateRectOnce(hWnd, &sMenuBarRect, FALSE);
+				InvalidateRectOnce(hWnd, &sMenuBarRect, FALSE);
 			}
 		}
-		else if (PtInRect(&sResizeRect, point) == TRUE) {
+		else {
+			if (szForm.close_hover == TRUE) {
+				szForm.close_hover = FALSE;
+				InvalidateRectOnce(hWnd, &sCloseRect, FALSE);
+			}
+		}
+		if (PtInRect(&sResizeRect, point) == TRUE) {
 			if (szForm.dec_resize_hover == FALSE) {
 				szForm.dec_resize_hover = TRUE;
 				UpdateTooltipEx(szHandle[HANDLE_TOOLTIP_WND], hWnd, &sResizeRect, TEXT("调整"));
-				return InvalidateRectOnce(hWnd, &sResizeRect, FALSE);
+				InvalidateRectOnce(hWnd, &sResizeRect, FALSE);
 			}
 		}
-		else if (PtInRect(&sUpdateRect, point) == TRUE) {
-			if (szNeedUpdate) {
+		else if (szForm.dec_resize_hover == TRUE) {
+			szForm.dec_resize_hover = FALSE;
+			InvalidateRectOnce(hWnd, &sResizeRect, FALSE);
+		}
+		if (szNeedUpdate) {
+			if (PtInRect(&sUpdateRect, point) == TRUE) {
 				if (szForm.dec_update_hover == FALSE) {
 					szForm.dec_update_hover = TRUE;
 					UpdateTooltipEx(szHandle[HANDLE_TOOLTIP_WND], hWnd, &sUpdateRect, TEXT("更新"));
-					return InvalidateRectOnce(hWnd, &sUpdateRect, FALSE);
+					InvalidateRectOnce(hWnd, &sUpdateRect, FALSE);
 				}
-			}
-		}
-		else if (PtInRect(&sCutRect, point) == TRUE) {
-			if (szForm.dec_cut_hover == FALSE) {
-				szForm.dec_cut_hover = TRUE;
-				UpdateTooltipEx(szHandle[HANDLE_TOOLTIP_WND], hWnd, &sCutRect, TEXT("截图"));
-				return InvalidateRectOnce(hWnd, &sCutRect, FALSE);
-			}
-		}
-		else if (PtInRect(&sRecordRect, point) == TRUE) {
-			UpdateTooltipEx(szHandle[HANDLE_TOOLTIP_WND], hWnd, &sRecordRect, TEXT("录音"));
-		}
-		else {
-			LPRECT pRestRect = NULL;
-			if (szForm.dec_about_hover == TRUE) {
-				szForm.dec_about_hover = FALSE;
-				return InvalidateRectOnce(hWnd, &sAboutRect, FALSE);
-			}
-			else if (szForm.close_hover == TRUE) {
-				szForm.close_hover = FALSE;
-				return InvalidateRectOnce(hWnd, &sCloseRect, FALSE);
-			}
-			else if (szForm.dec_min_hover == TRUE) {
-				szForm.dec_min_hover = FALSE;
-				return InvalidateRectOnce(hWnd, &sMinRect, FALSE);
-			}
-			else if (szForm.dec_resize_hover == TRUE) {
-				szForm.dec_resize_hover = FALSE;
-				return InvalidateRectOnce(hWnd, &sResizeRect, FALSE);
 			}
 			else if (szForm.dec_update_hover == TRUE) {
 				//存在更新
-				if (szNeedUpdate) {
-					szForm.dec_update_hover = FALSE;
-					return InvalidateRectOnce(hWnd, &sUpdateRect, FALSE);
-				}
-			}
-			if (szForm.dec_cut_hover == TRUE) {
-				szForm.dec_cut_hover = FALSE;
-				return InvalidateRectOnce(hWnd, &sCutRect, FALSE);
+				szForm.dec_update_hover = FALSE;
+				InvalidateRectOnce(hWnd, &sUpdateRect, FALSE);
 			}
 		}
-		if (PtInRect(&sDecValRect, point) == TRUE) {
-			szForm.dec_hover = TRUE;
+
+		if (PtInRect(&sCutRect, point) == TRUE) {
+			if (szForm.dec_cut_hover == FALSE) {
+				szForm.dec_cut_hover = TRUE;
+				UpdateTooltipEx(szHandle[HANDLE_TOOLTIP_WND], hWnd, &sCutRect, TEXT("截图"));
+				InvalidateRectOnce(hWnd, &sCutRect, FALSE);
+			}
 		}
-		else {
-			szForm.dec_hover = FALSE;
+		else if (szForm.dec_cut_hover == TRUE) {
+			szForm.dec_cut_hover = FALSE;
+			InvalidateRectOnce(hWnd, &sCutRect, FALSE);
 		}
+		if (PtInRect(&sRecordRect, point) == TRUE) {
+			UpdateTooltipEx(szHandle[HANDLE_TOOLTIP_WND], hWnd, &sRecordRect, TEXT("录音"));
+		}
+		szForm.dec_hover = PtInRect(&sDecValRect, point);
 		break;
 	case WM_LBUTTONDOWN:
 		szMouse.l_button_down = TRUE;
