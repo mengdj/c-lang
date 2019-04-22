@@ -5,5 +5,4 @@
 ÕºœÒ:stb_image
 “Ù∆µ:lamemp3
 ‰÷»æ:opengl+gdi
-
-                    mengdj
+¡¥Ω”:github.com/mengdj

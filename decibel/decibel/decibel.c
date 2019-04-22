@@ -136,7 +136,7 @@ PSTB_IMAGE_DATA			szResTip[1] = { NULL };				  //加载动画
 PSTB_IMAGE_DATA			szResAbout[2] = { NULL,NULL };
 MOUSE_POS				szMouse = { 0,0,0,0,0,0 };
 WIN_FORM				szForm = { {0,0,0},1,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,{NULL,NULL,NULL,NULL},{NULL,NULL,NULL},{NULL,NULL},NULL,0,0,0 };
-RECT					sClientRect = { 0 }, sUpdateRect = {0}, sAboutContentRect = { 0 }, sMenuBarRect = { 0 }, sAnalysisRect = { 0 }, sResizeRect = { 0 }, sAboutRect = { 0 }, sRecordRect = { 0 }, sMinRect = { 0 }, sCloseRect = { 0 }, sCutRect = { 0 }, sDecValRect = { 0 }, sContentRect = { 0 };
+RECT					sClientRect = { 0 }, sUpdateRect = { 0 }, sAboutContentRect = { 0 }, sMenuBarRect = { 0 }, sAnalysisRect = { 0 }, sResizeRect = { 0 }, sAboutRect = { 0 }, sRecordRect = { 0 }, sMinRect = { 0 }, sCloseRect = { 0 }, sCutRect = { 0 }, sDecValRect = { 0 }, sContentRect = { 0 };
 HANDLE					szHandle[13] = { NULL,NULL,NULL,NULL,NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,NULL };
 RING_BUFF				szRing = { NULL,0,{NULL,NULL,NULL} }; //环形缓冲区读取音频数据
 FILE* szLog = NULL;
@@ -155,6 +155,7 @@ BYTE* szAboutBody = NULL;					//
 MSG_TIP					szMsgTip = { 0 };
 BOOL					szNeedUpdate = FALSE;
 BOOL					szAllowValidate = TRUE;
+CURLcode				szCurlCode = CURL_LAST;
 
 VOID					ClearGifMemory();
 VOID					CenterWindow(HWND);
@@ -185,7 +186,7 @@ VOID					UpdateTooltipEx(HWND, HWND, LPRECT, WCHAR*);
 BOOL					UnPreProcessCreate(HWND, UINT, WPARAM, LPARAM);
 BOOL					InvalidateRectOnce(HWND, CONST RECT*, BOOL);
 LRESULT CALLBACK		WndProc(HWND, UINT, WPARAM, LPARAM);
-VOID					WriteMsgContext(INT, INT, COLORREF, COLORREF, CONST WCHAR*, BOOL);
+VOID					WriteMsgContent(INT, INT, COLORREF, COLORREF, CONST WCHAR*, BOOL);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -520,7 +521,7 @@ VOID	InitAllRect(HWND hWnd) {
 		sTmpPid->y = sAboutRect.top;
 	}
 	sUpdateRect.left = sTmpPid->x - 4;
-	sUpdateRect.top = sTmpPid->y +1;
+	sUpdateRect.top = sTmpPid->y + 1;
 	sUpdateRect.right = sUpdateRect.left + sTmpPid->width;
 	sUpdateRect.bottom = sUpdateRect.top + sTmpPid->height;
 }
@@ -537,6 +538,9 @@ BOOL	IsNeedUpdate(const WCHAR* pVer) {
 					szNeedUpdate = TRUE;
 					break;
 				}
+				else {
+					break;
+				}
 			}
 			ver = wcstok_s(NULL, ".", &next_token);
 			iCouVer++;
@@ -546,7 +550,7 @@ BOOL	IsNeedUpdate(const WCHAR* pVer) {
 }
 
 //检查版本号
-size_t CheckVer(VOID *ptr, size_t size, size_t nmemb, VOID *stream) {
+size_t CheckVer(VOID* ptr, size_t size, size_t nmemb, VOID* stream) {
 	//9.9.9
 	if (nmemb == 6) {
 		WCHAR wSVer[MAX_LOADSTRING] = { 0 }, wDVer[MAX_LOADSTRING] = { 0 };
@@ -557,10 +561,10 @@ size_t CheckVer(VOID *ptr, size_t size, size_t nmemb, VOID *stream) {
 			WCHAR wMsg[MAX_LOADSTRING] = { 0 };
 			WritePrivateProfileStringLocal(TEXT("DEC"), TEXT("version"), wDVer);
 			swprintf_s(wMsg, MAX_LOADSTRING, TEXT("检测到新版本:%s,建议尽快更新"), wDVer);
-			WriteMsgContext(0, 1500, RGB(0xFF, 0xFF, 0xFF), RGB(0x82, 0x84, 0xFD), wMsg, TRUE);
+			WriteMsgContent(0, 1500, RGB(0xFF, 0xFF, 0xFF), RGB(0x82, 0x84, 0xFD), wMsg, TRUE);
 		}
 	}
-	return size* nmemb;
+	return size * nmemb;
 }
 
 //检查版本更新信息
@@ -770,9 +774,9 @@ BOOL PreProcessCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 		szForm.first_run = TRUE;
 		WritePrivateProfileStringLocal(TEXT("DEC"), TEXT("first_run"), TEXT("N"));
 	}
-	curl_global_init(CURL_GLOBAL_ALL);
+	szCurlCode = curl_global_init(CURL_GLOBAL_ALL);
 	if (!szForm.first_run) {
-		WCHAR wVer[MAX_LOADSTRING] = {0};
+		WCHAR wVer[MAX_LOADSTRING] = { 0 };
 		if (GetPrivateProfileStringLocal(TEXT("DEC"), TEXT("version"), TEXT_CURRENT_VER, wVer, MAX_LOADSTRING)) {
 			if (lstrcmp(wVer, TEXT_CURRENT_VER) != 0) {
 				szNeedUpdate = TRUE;
@@ -936,7 +940,7 @@ BOOL InitOpenGlWin() {
 	return FALSE;
 }
 
-VOID UpdateTooltipEx(HWND hWndTool, HWND hWndOwner, LPRECT lPRect, WCHAR* wTip) {
+VOID UpdateTooltipEx(HWND hWndTool, HWND hWndOwner, LPRECT lPRect, WCHAR * wTip) {
 	static RECT prevRect = { 0 };
 	static BOOL	bFirstEnter = TRUE;
 	if (lPRect && wTip) {
@@ -1119,7 +1123,7 @@ BOOL UnPreProcessCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 		if (szHandle[HANDLE_DEF_FONT] != NULL) {
 			RemoveFontMemResourceEx(szHandle[HANDLE_DEF_FONT]);
 		}
-		
+
 		if (szHandle[HANDLE_TOOLTIP_WND]) {
 			DestroyWindow(szHandle[HANDLE_TOOLTIP_WND]);
 			szHandle[HANDLE_TOOLTIP_WND] = NULL;
@@ -1130,7 +1134,10 @@ BOOL UnPreProcessCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 			fclose(szLog);
 			szLog = NULL;
 		}
-		curl_global_cleanup();
+		if (CURLE_OK == szCurlCode) {
+			curl_global_cleanup();
+			szCurlCode = CURL_LAST;
+		}
 	}
 	CoUninitialize();
 	return TRUE;
@@ -1435,6 +1442,10 @@ BOOL RenderAbout(HDC hdc, HDC hMemdc, const LPRECT lPRect) {
 				token = wcstok_s(NULL, TEXT("\n"), &next_token);
 				iCount++;
 			}
+			iTextSize = lstrlen(TEXT_CURRENT_VER);
+			if (GetTextExtentPoint32(hMemdc, TEXT_CURRENT_VER, iTextSize, &bodySize) == TRUE) {
+				TextOut(hMemdc, lPRect->right - bodySize.cx - 5, lPRect->bottom - bodySize.cy - 5, TEXT_CURRENT_VER, iTextSize);
+			}
 		}
 	}
 	UpdateDeviceContextEx(hMemdc, sTmpPid->hBitmap, &sTmpRect);
@@ -1623,6 +1634,7 @@ BOOL RenderDecFrame(HDC hdc, HDC hMemdc, const LPRECT lPRect) {
 				UpdateDeviceContextEx(hMemdc, szResTip[0]->hBitmap, &sClientRect);
 			}
 			else {
+				//释放内存
 				szForm.first_run = FALSE;
 				stbi_image_free(szResTip[0]->data);
 				szResTip[0]->data = NULL;
@@ -1677,11 +1689,11 @@ LRESULT CALLBACK OpenGLProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 					GlUpdateBackgroundFromFile(cDropFileName);
 				}
 				else {
-					WriteMsgContext(0, 1500, RGB(0xFF, 0xFF, 0xFF), RGB(0xFF, 0x00, 0x00), TEXT("文件类型不合法，仅允许 .png .jpg .jpeg"), FALSE);
+					WriteMsgContent(0, 1500, RGB(0xFF, 0xFF, 0xFF), RGB(0xFF, 0x00, 0x00), TEXT("文件类型不合法，仅允许 .png .jpg .jpeg"), FALSE);
 				}
 			}
 			else {
-				WriteMsgContext(0, 1500, RGB(0xFF, 0xFF, 0xFF), RGB(0xFF, 0x00, 0x00), TEXT("文件类型不合法，仅允许 .png .jpg .jpeg"), FALSE);
+				WriteMsgContent(0, 1500, RGB(0xFF, 0xFF, 0xFF), RGB(0xFF, 0x00, 0x00), TEXT("文件类型不合法，仅允许 .png .jpg .jpeg"), FALSE);
 			}
 		}
 		DragFinish(hDrop);
@@ -1785,7 +1797,7 @@ BOOL CaptureAndBuildPng(HWND hWnd, CONST WCHAR * pName) {
 }
 
 /**刷新*/
-BOOL	InvalidateRectOnce(HWND hWnd, CONST RECT* lpRect, BOOL bErase) {
+BOOL	InvalidateRectOnce(HWND hWnd, CONST RECT * lpRect, BOOL bErase) {
 	if (szAllowValidate) {
 		InvalidateRect(hWnd, lpRect, bErase);
 	}
@@ -1827,8 +1839,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		FillRect(szMemDc, &sMenuBarRect, szForm.hBrush[1]);
 		COLORREF oldColor = SetTextColor(szMemDc, RGB(0xFF, 0xFF, 0xFF));
 		szForm.hFont[1] = SelectObject(szMemDc, szForm.hFont[0]);
-		DrawIcon(szMemDc, 3, 4, szIcon[ICON_IDB_DEC_SMALL]);
-		TextOut(szMemDc, 32, 12, szTitle, lstrlen(szTitle));
+		TextOut(szMemDc, 6, 12, szTitle, lstrlen(szTitle));
 		MoveToEx(szMemDc, 0, 40, &oldPoint);
 		LineTo(szMemDc, sClientRect.right, 40);
 		MoveToEx(szMemDc, oldPoint.x, oldPoint.y, NULL);
@@ -1856,7 +1867,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				RenderAlphaBitmap(szMemDc, szPngMemDc, sTmpPid->hBitmap, &sUpdateRect, (szForm.dec_update_hover == TRUE) ? cHoverColor : 0);
 			}
 		}
-		
+
 		if (szForm.dec_devs[1]) {
 			if (szForm.dec_devs[2]) {
 				//数据准备
@@ -2125,7 +2136,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 				if (Char2WChar(cName, wName)) {
 					WCHAR msgBuff[MAX_LOADSTRING];
 					swprintf_s(msgBuff, MAX_LOADSTRING, TEXT("%s %s"), TEXT("截图"), wName);
-					WriteMsgContext(0, 1500, RGB(0xFF, 0xFF, 0xFF), RGB(0x49, 0xA8, 0x14), msgBuff, FALSE);
+					WriteMsgContent(0, 1500, RGB(0xFF, 0xFF, 0xFF), RGB(0x49, 0xA8, 0x14), msgBuff, FALSE);
 				}
 			}
 			else if (PtInRect(&sRecordRect, point) == TRUE) {
@@ -2150,7 +2161,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 							Audio_Reset();
 						}
 					}
-					WriteMsgContext(0, 1500, RGB(0xFF, 0xFF, 0xFF), RGB(0xFF, 0x7A, 0x00), TEXT("结束录音"), FALSE);
+					WriteMsgContent(0, 1500, RGB(0xFF, 0xFF, 0xFF), RGB(0xFF, 0x7A, 0x00), TEXT("结束录音"), FALSE);
 				}
 				else {
 					//start
@@ -2196,7 +2207,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 					}
 					WCHAR msgBuff[MAX_LOADSTRING];
 					swprintf_s(msgBuff, MAX_LOADSTRING, TEXT("%s %s"), TEXT("录音"), szRecEncName);
-					WriteMsgContext(0, 1500, RGB(0xFF, 0xFF, 0xFF), RGB(0x49, 0xA8, 0x14), msgBuff, TRUE);
+					WriteMsgContent(0, 1500, RGB(0xFF, 0xFF, 0xFF), RGB(0x49, 0xA8, 0x14), msgBuff, TRUE);
 				}
 				//刷新
 				InvalidateRectOnce(hWnd, &sRecordRect, FALSE);
@@ -2227,7 +2238,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		break;
 	case WM_QUERYENDSESSION:
 		//关机
-		WriteMsgContext(0, 1500, RGB(0xFF, 0xFF, 0xFF), RGB(0xFF, 0x7A, 0x00), TEXT("关闭"), FALSE);
+		WriteMsgContent(0, 1500, RGB(0xFF, 0xFF, 0xFF), RGB(0xFF, 0x7A, 0x00), TEXT("关闭"), FALSE);
 		PostMessage(hWnd, WM_CLOSE, (WPARAM)NULL, (LPARAM)NULL);
 		break;
 	case WM_COMPACTING:
@@ -2263,7 +2274,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 	return TRUE;
 }
 
-VOID	WriteMsgContext(INT start, INT delay, COLORREF color, COLORREF background, CONST CHAR * msg, BOOL refresh) {
+VOID	WriteMsgContent(INT start, INT delay, COLORREF color, COLORREF background, CONST CHAR * msg, BOOL refresh) {
 	szMsgTip.background = background;
 	szMsgTip.color = color;
 	szMsgTip.delay = delay;
