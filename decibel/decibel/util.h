@@ -54,6 +54,27 @@ BOOL WritePrivateProfileStringLocal(LPCWSTR lpAppName, LPCWSTR lpKeyName, LPCWST
 	return WritePrivateProfileString(lpAppName, lpKeyName, lpString, wDir);
 }
 
+//ÌáÉý¶ÁÐ´È¨ÏÞ
+BOOL EnableDebugPriv() {
+	HANDLE hToken;
+	LUID sedebugnameValue;
+	TOKEN_PRIVILEGES tkp;
+	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken)) {
+		return FALSE;
+	}
+	if (!LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &sedebugnameValue)) {
+		CloseHandle(hToken);
+		return FALSE;
+	}
+	tkp.PrivilegeCount = 1;
+	tkp.Privileges[0].Luid = sedebugnameValue;
+	tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+	if (!AdjustTokenPrivileges(hToken, FALSE, &tkp, sizeof tkp, NULL, NULL)) {
+		CloseHandle(hToken);
+	}
+	return TRUE;
+}
+
 INT LoadResourceFromZip(mz_zip_archive *pZip, const char* pName, LPVOID *pBuff) {
 	INT iIndex = 0, iSize = 0;
 	if ((iIndex = mz_zip_reader_locate_file(pZip, pName, NULL, 0)) >= 0) {

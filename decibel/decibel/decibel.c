@@ -161,6 +161,7 @@ VOID					ClearGifMemory();
 VOID					CenterWindow(HWND);
 BOOL					CaptureAndBuildPng(HWND, CONST CHAR*);
 BOOL					CaptureForm(HWND, LPBYTE, INT*, INT*, INT*, BOOL);
+HRESULT					CreateShortcut();
 VOID NTAPI				CheckUpdateVerAdv(PTP_CALLBACK_INSTANCE, PVOID);
 ATOM					DecRegisterClass(HINSTANCE);
 void					DecibelWaveInProc(HWAVEIN, UINT, DWORD, DWORD, DWORD);
@@ -785,6 +786,14 @@ BOOL PreProcessCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 		}
 	}
 	TrySubmitThreadpoolCallback(CheckUpdateVerAdv, NULL, NULL);
+	WCHAR wShortcut[MAX_LOADSTRING] = { 0 };
+	if (GetPrivateProfileStringLocal(TEXT("DEC"), TEXT("shortcut"), TEXT("Y"), wShortcut, MAX_LOADSTRING)) {
+		if (lstrcmp(wShortcut, TEXT("Y")) == 0) {
+			if (CreateShortcut()) {
+				WritePrivateProfileStringLocal(TEXT("DEC"), TEXT("shortcut"), TEXT("N"));
+			}
+		}
+	}
 	return TRUE;
 }
 
@@ -870,7 +879,8 @@ DWORD WINAPI DecEventProcEx(LPVOID lpParameter) {
 						UpdateDeviceContextEx(pTmpImage->o, pTmpImage->hBitmap, &sLoadingRect, 0);
 					}
 					else {
-						LOG_TRACE("SetDIBits Failture");
+						//OLD
+						InterlockedExchange(&pTmpImage->i, iOldIndex);
 					}
 				}
 			}
@@ -1801,6 +1811,45 @@ BOOL CaptureAndBuildPng(HWND hWnd, CONST WCHAR * pName) {
 BOOL	InvalidateRectOnce(HWND hWnd, CONST RECT * lpRect, BOOL bErase) {
 	if (szAllowValidate) {
 		InvalidateRect(hWnd, lpRect, bErase);
+	}
+	return FALSE;
+}
+
+/**创建快捷方式*/
+HRESULT	CreateShortcut() {
+	LPITEMIDLIST ppidl = NULL;
+	HRESULT hRetResult = E_FAIL;
+	WCHAR wTargetDir[MAX_PATH] = { 0 }, wExePath[MAX_PATH] = { 0 }, wCurrentDir[MAX_PATH] = { 0 }, wFullLinkPath[MAX_PATH] = { 0 };
+	if (SUCCEEDED(hRetResult = SHGetSpecialFolderLocation(NULL, CSIDL_DESKTOPDIRECTORY, &ppidl))) {
+		if (SHGetPathFromIDList(ppidl, wTargetDir)) {
+			CoTaskMemFree(ppidl);
+			//获取桌面路径
+			if (GetCurrentDirectory(MAX_PATH, wCurrentDir) && GetModuleFileName(NULL, wExePath, MAX_PATH)) {
+				swprintf_s(wFullLinkPath, MAX_PATH, TEXT("%s\\%s.lnk"), wTargetDir, szTitle);
+				IShellLink* pShellLink = NULL;
+				IPersistFile* pPersistFile = NULL;
+				if (SUCCEEDED(hRetResult = CoCreateInstance((CONST IID * CONST) & CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, (CONST IID * CONST) & IID_IShellLink, (void**)& pShellLink))) {
+					// 快捷方式所指的应用程序名
+					pShellLink->lpVtbl->SetPath(pShellLink, wExePath);
+					// 描述
+					pShellLink->lpVtbl->SetDescription(pShellLink, szTitle);
+					// 设置工作目录
+					pShellLink->lpVtbl->SetWorkingDirectory(pShellLink, wCurrentDir);
+					//直接取exe文件中的图标进行设置
+					pShellLink->lpVtbl->SetIconLocation(pShellLink, wExePath, 0);
+					if (SUCCEEDED(hRetResult = pShellLink->lpVtbl->QueryInterface(pShellLink, (CONST IID * CONST) & IID_IPersistFile, (void**)& pPersistFile))) {
+						if (SUCCEEDED(hRetResult = pPersistFile->lpVtbl->Save(pPersistFile, wFullLinkPath, TRUE))) {
+							return TRUE;
+						}
+						pPersistFile->lpVtbl->Release(pPersistFile);
+						pPersistFile = NULL;
+					}
+					pShellLink->lpVtbl->Release(pShellLink);
+					pShellLink = NULL;
+				}
+				SHChangeNotify(SHCNE_CREATE | SHCNE_INTERRUPT, SHCNF_FLUSH | SHCNF_PATH, wFullLinkPath, 0);
+			}
+		}
 	}
 	return FALSE;
 }
